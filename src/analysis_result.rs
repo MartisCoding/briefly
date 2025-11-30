@@ -1,4 +1,5 @@
 use actix_web::FromRequest;
+use log::info;
 use serde::{Deserialize, Serialize};
 
 
@@ -21,7 +22,8 @@ pub struct Issue {
 impl Issue {
     pub fn from_llm_issue(llm_issue: crate::llm_client::LLMAnalysisIssue, original_text: &str, filter: &Severity) -> Option<Self> {
         let start = original_text.find(&llm_issue.quote)?;
-        let end = start + llm_issue.quote.len();
+        let start = original_text[..start].chars().count();
+        let end = start + llm_issue.quote.chars().count();
         let severity = match llm_issue.severity.as_str() {
             "info" => {
                 if *filter > Severity::Info {
@@ -49,6 +51,7 @@ impl Issue {
             "Dependency" => Category::Dependency,
             _ => return None,
         };
+        info!("Mapped LLM issue: quote='{}', start={}, end={}, message='{}', severity={:?}, category={:?}", llm_issue.quote, start, end, llm_issue.message, severity, category);
         Some(Self {
             start,
             end,
@@ -61,6 +64,7 @@ impl Issue {
 
 #[derive(Debug, Deserialize, Serialize, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Severity {
+    Test, // Test of request parsing, isn't used in filtering
     Info,
     Warning,
     Error,

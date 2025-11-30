@@ -48,6 +48,22 @@ async fn main() -> std::io::Result<()> {
 }
 
 async fn analyze_handler(llm_client: web::Data<LLMClient>, body: AnalysisRequest) -> HttpResponse {
+    info!("Received analysis request with filter: {:?}", body.filter);
+    if body.filter == analysis_result::Severity::Test {
+        info!("Test severity received, returning test response");
+        let test_issue = analysis_result::Issue {
+            start: 0,
+            end: 4,
+            message: "This is a test issue".to_string(),
+            severity: analysis_result::Severity::Info,
+            category: analysis_result::Category::Question,
+        };
+        let analysis_result = analysis_result::AnalysisResult {
+            issues: vec![test_issue],
+            //scoring: scoring::score(&vec![test_issue]),
+        };
+        return HttpResponse::Ok().json(analysis_result);
+    }
     let llm_issues = llm_client.analyze_input(&body.text).await;
     match llm_issues {
         Ok(issues) => {
@@ -68,6 +84,7 @@ async fn analyze_handler(llm_client: web::Data<LLMClient>, body: AnalysisRequest
 }
 
 async fn ping() -> HttpResponse {
+    info!("Received ping request");
     HttpResponse::Ok().body("Pong")
 }
 
